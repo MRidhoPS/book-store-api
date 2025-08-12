@@ -6,6 +6,7 @@ const { authenticateToken } = require('../middleware/employee_middleware');
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../database/cloudinary');
+const { registerController } = require('../controller/auth_controller');
 
 const router = express.Router();
 
@@ -13,73 +14,13 @@ const router = express.Router();
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'book-store', // nama folder di cloudinary
+        folder: 'book-store', 
         allowed_formats: ['jpg', 'png', 'jpeg'],
         public_id: (req, file) => `${Date.now()}-${file.originalname}`,
     },
 });
 
 const upload = multer({ storage });
-
-
-router.post('/register', async (req, res) => {
-    const { username, password, } = req.body;
-
-    // CHECKING EMAIL HAS REGISTERED
-    db.query('SELECT * FROM users Where username = ?', [username], async (err, results) => {
-        if (err) return res.status(500).json({
-            error: err.message
-        });
-
-        if (results.length > 0) {
-            return res.status(400).json({
-                message: 'Username Sudah Terdaftar'
-            })
-        }
-
-        // HASHING PASSWORD
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // SIMPAN KE DATABASE
-        db.query(
-            'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-            [username, hashedPassword],
-            (err, result) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.status(201).json({ message: 'Registrasi berhasil' });
-            }
-        );
-
-    })
-})
-
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-
-    db.query('SELECT * FROM users where username = ?', [username], async (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (results.length === 0) return res.status(400).json({ message: 'Username tidak terdaftar' });
-
-        const user = results[0];
-
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) {
-            return res.status(400).json({
-                message: 'Password salah'
-            })
-        }
-
-        const token = jwt.sign({
-            id: user.id,
-            username: user.username,
-        }, process.env.JWT_SECRET, {
-            expiresIn: '12h',
-        });
-
-        res.status(200).json({ message: 'Login berhasil', token });
-    });
-})
 
 router.get('/showBook', authenticateToken, (req, res) => {
     db.query('SELECT * FROM books', (err, result) => {
@@ -92,25 +33,6 @@ router.get('/showBook', authenticateToken, (req, res) => {
         });
     })
 })
-
-// router.post('/addBook', authenticateToken, (req, res) => {
-//     const { title, price } = req.body;
-
-//     const formattedPrice = parseFloat(
-//         price.replace(/\./g, '').replace(/,/g, '')
-//     );
-
-//     db.query('INSERT INTO books (title, price) values (?,?)', [title, formattedPrice], (err, result) => {
-//         if (err) return res.status(500).json({ error: err.message });
-//         if (result.length > 1) return res.status(400).json({ message: 'Buku sudah terdaftar' });
-
-//         res.status(201).json({
-//             message: "Buku berhasil terdaftar",
-//             title: title,
-//             price: price,
-//         })
-//     })
-// });
 
 router.post('/addBook', authenticateToken, upload.single('gambar'), (req, res) => {
     const { title, price } = req.body;
@@ -273,6 +195,18 @@ router.post('/buyBooks', authenticateToken, (req, res) => {
                 res.status(500).json({ error: err.message });
             });
     });
+});
+
+router.get('/getHistoryBarang', authenticateToken, (req, res)=>{
+    db.query('select * from transaction_items', (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.length === 0) return res.status(400).json({ message: 'Buku belum ada' });
+
+        res.status(200).json({
+            message: "Berhasil dapat data",
+            data: result
+        });
+    })
 });
 
 
