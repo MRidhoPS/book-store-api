@@ -26,6 +26,7 @@ async function registerController(req, res) {
             username: username, password: hashedPassword
         })
 
+
         return res.status(201).json({
             message: "Berhasil Registrasi Account",
         })
@@ -53,6 +54,9 @@ async function loginContoller(req, res) {
                 message: "Invalid username or password"
             })
         }
+
+        console.log(result);
+
 
         const matchingPassword = await bcrypt.compare(password, result.password_hash);
 
