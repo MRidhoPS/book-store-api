@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth_routes');
+const adminRoutes = require('./routes/employee_routes');
+const cookieParser = require('cookie-parser');
+
 
 dotenv.config();
 
@@ -12,8 +15,10 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/bookstore/auth', authRoutes);
+app.use('/bookstore/admin', adminRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
